@@ -1,0 +1,15 @@
+{
+  "originHash" : "f15854bbf3f312ed995d5a69f4411adbf8d275da0eb543a60c47c2d453326f25",
+  "pins" : [
+    {
+      "identity" : "holiday_jp-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/holiday-jp/holiday_jp-swift",
+      "state" : {
+        "revision" : "45129b042d941ab1abce2b878ee048c39f1813a8",
+        "version" : "0.2.1"
+      }
+    }
+  ],
+  "version" : 3
+}
