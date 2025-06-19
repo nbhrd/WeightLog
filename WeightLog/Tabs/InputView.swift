@@ -29,6 +29,11 @@ struct InputView: View {
                     TextField("例: 65.4", text: $weight)
                         .keyboardType(.decimalPad)
                         .focused($isFocused)
+                        .onAppear {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                isFocused = true
+                            }
+                        }
                 }
                 
                 Section(header: Text("日付")) {
@@ -39,9 +44,6 @@ struct InputView: View {
                 Section(header: Text("メモ（任意）")) {
                     TextField("気づいたことや補足など", text: $memo)
                 }
-
-                
-                
             }
             .navigationTitle("体重を記録")
             .onTapGesture {
@@ -113,22 +115,6 @@ struct InputView: View {
         performSaveSuccessFeedback(showToastBinding: $showCheckmark) {
             dismiss()
         }
-        
-//        // Haptics: 成功のフィードバック
-//        let generator = UINotificationFeedbackGenerator()
-//        generator.notificationOccurred(.success)
-//
-//        // チェックマーク表示
-//        withAnimation(.spring()) {
-//            showCheckmark = true
-//        }
-//
-//        // チェックマークを1.5秒後に消す
-//        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-//            withAnimation(.easeOut) {
-//                showCheckmark = false
-//            }
-//        }
     }
 }
 

@@ -22,7 +22,7 @@ struct WeightAddView: View {
         NavigationStack {
             Form {
                 Section(header: Text("体重")) {
-                    TextField("例: 65.4", text: $weight)
+                    TextField("例: 58.5", text: $weight)
                         .keyboardType(.decimalPad)
                         .focused($isWeightFocused)
                 }

@@ -8,42 +8,48 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var showAddWeight = false
+    @State private var showInputView = false
+    @State private var selectedTab = 0
 
     var body: some View {
         ZStack {
-            TabView {
-//                InputView()
-//                    .tabItem {
-//                        Image(systemName: "square.and.pencil")
-//                        Text("入力")
-//                    }
-
+            TabView(selection: $selectedTab) {
                 ListView()
                     .tabItem {
                         Image(systemName: "list.bullet")
                         Text("一覧")
                     }
+                    .tag(0)
 
                 GraphView()
                     .tabItem {
                         Image(systemName: "chart.bar")
                         Text("グラフ")
                     }
+                    .tag(1)
+
+                Color.clear // 空タブで中央スペース確保
+                    .tabItem {
+                        Image(systemName: "")
+                        Text("")
+                    }
+                    .tag(99)
 
                 CalendarView()
                     .tabItem {
                         Image(systemName: "calendar")
                         Text("カレンダー")
                     }
+                    .tag(2)
 
                 SettingsView()
                     .tabItem {
                         Image(systemName: "gearshape")
                         Text("設定")
                     }
+                    .tag(3)
             }
-            
+
             // フローティングボタン
             VStack {
                 Spacer()
@@ -51,34 +57,30 @@ struct ContentView: View {
                     Spacer()
                     Button(action: {
                         withAnimation(.spring()) {
-                            showAddWeight = true
+                            showInputView = true
                         }
                     }) {
-                        Image(systemName: "square.and.pencil")
-                            .font(.system(size: 24, weight: .bold))
-                            .foregroundColor(.white)
-                            .padding()
-                            .background(Color.accentColor)
+                        Image(systemName: "plus.circle.fill")
+                            .resizable()
+                            .frame(width: 60, height: 60)
+                            .foregroundColor(.accentColor)
+                            .background(Color(UIColor.systemBackground))
                             .clipShape(Circle())
                             .shadow(radius: 4)
                     }
-                    .padding(.trailing, 24)
-                    .padding(.bottom, 24)
-                    .accessibilityLabel("体重を追加")
+                    .offset(y: -20)
+                    Spacer()
                 }
             }
         }
-        .safeAreaInset(edge: .bottom) {
-            Spacer().frame(height: 40)
+        .sheet(isPresented: $showInputView) {
+            InputView()
         }
-        // モーダル表示
-        .sheet(isPresented: $showAddWeight) {
-            WeightAddView(defaultDate: .now)
-        }
-        
     }
 }
+
 
 #Preview {
     ContentView()
 }
+

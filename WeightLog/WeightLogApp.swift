@@ -20,6 +20,6 @@ struct WeightLogApp: App {
                     colorSchemeSetting == "dark" ? .dark : nil
                 )
         }
-        .modelContainer(for: WeightRecord.self)
+        .modelContainer(for: [WeightRecord.self])
     }
 }

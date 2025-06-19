@@ -193,6 +193,13 @@ struct ListView: View {
                 }
             }
         }
+        .onAppear {
+            if let minDate = records.map(\.date).min(),
+               let maxDate = records.map(\.date).max() {
+                startDate = Calendar.current.startOfDay(for: minDate)
+                endDate = Calendar.current.date(byAdding: DateComponents(day: 1, second: -1), to: Calendar.current.startOfDay(for: maxDate)) ?? Date()
+            }
+        }
     }
     
     private func formattedMonth(_ date: Date) -> String {
