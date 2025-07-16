@@ -6,50 +6,61 @@
 //
 
 import SwiftUI
-import UIKit
 
 struct InputView: View {
     @State private var date = Date()
-    @State private var weight: String = ""
+    @State private var rawWeightInput: String = ""
     @State private var memo: String = ""
-    @FocusState private var isFocused: Bool
     @AppStorage("lastSavedWeight") private var lastSavedWeight: Double = 0
     @State private var showToast = false
     @State private var showCheckmark = false
     @State private var isWeightInputInvalid = false
-    
+
     @Environment(\.modelContext) private var modelContext
-    
     @Environment(\.dismiss) private var dismiss
+
+    /// 表示用の整形済み体重（Double → String）
+    var formattedWeight: String {
+        formatWeight(from: rawWeightInput)
+    }
 
     var body: some View {
         NavigationStack {
             Form {
-                Section(header: Text("体重 (kg)").textCase(nil)) {
-                    TextField("例: 65.4", text: $weight)
-                        .keyboardType(.decimalPad)
-                        .focused($isFocused)
-                        .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                isFocused = true
-                            }
-                        }
+                Section(header: Text("")) {
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        Text(formattedWeight == "0.0" ? "0.0" : formattedWeight)
+                            .font(.system(size: 60, weight: .black))
+
+                        Text("kg")
+                            .font(.title2)
+                            .foregroundColor(.gray)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .center)
                 }
-                
-                Section(header: Text("日付")) {
+
+                Section(header: Text("")) {
                     DatePicker("記録日", selection: $date, displayedComponents: .date)
                         .environment(\.locale, Locale(identifier: "ja_JP"))
                 }
 
-                Section(header: Text("メモ（任意）")) {
-                    TextField("気づいたことや補足など", text: $memo)
+                // Optional: メモ欄
+//                Section(header: Text("メモ（任意）")) {
+//                    TextField("気づいたことや補足など", text: $memo)
+//                }
+            }
+            .navigationTitle("")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("閉じる") {
+                        dismiss()
+                    }
                 }
             }
-            .navigationTitle("体重を記録")
-            .onTapGesture {
-                isFocused = false
-            }
-            
+
+            NumberPadView(input: $rawWeightInput)
+                .padding(.bottom)
+
             Button(action: {
                 save()
             }) {
@@ -61,35 +72,36 @@ struct InputView: View {
             }
         }
         .overlay(
-                Group {
-                    if showToast {
-                        Text("体重を入力してください")
-                            .font(.subheadline)
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 10)
-                            .background(Color.red)
-                            .cornerRadius(10)
-                            .transition(.move(edge: .top).combined(with: .opacity))
-                    }
+            Group {
+                if showToast {
+                    Text("体重を入力してください")
+                        .font(.subheadline)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
+                        .background(Color.red)
+                        .cornerRadius(10)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
 
-                    if showCheckmark {
-                        SaveSuccessToast()
-                    }
-                },
-                alignment: .center
-            )
+                if showCheckmark {
+                    SaveSuccessToast()
+                }
+            },
+            alignment: .center
+        )
     }
 
     private func save() {
-        isFocused = false
 
-        guard let value = Double(weight) else {
+        let value = parsedWeight(from: rawWeightInput)
+
+        guard value > 0 else {
             isWeightInputInvalid = true
-            // Haptics：エラー振動
+
             let generator = UINotificationFeedbackGenerator()
             generator.notificationOccurred(.error)
-            
+
             withAnimation {
                 showToast = true
             }
@@ -102,21 +114,71 @@ struct InputView: View {
             return
         }
 
-        // 保存処理
         print("保存されました：\(value)kg")
         let record = WeightRecord(date: date, weight: value, memo: memo)
         modelContext.insert(record)
         try? modelContext.save()
 
         isWeightInputInvalid = false
-        weight = ""
+        rawWeightInput = ""
         memo = ""
 
         performSaveSuccessFeedback(showToastBinding: $showCheckmark) {
             dismiss()
         }
     }
+
+    private func formatWeight(from raw: String) -> String {
+        guard !raw.isEmpty, let _ = Int(raw), let firstChar = raw.first else {
+            return "0.0"
+        }
+
+        if ["1", "2"].contains(firstChar) {
+            if raw.count <= 3 {
+                // 3桁以下 → 整数扱い
+                return String(format: "%.1f", Double(raw)!)
+            } else {
+                // 4桁以上 → 小数点を挿入
+                let intPart = String(raw.dropLast())
+                let decimal = String(raw.suffix(1))
+                return "\(intPart).\(decimal)"
+            }
+        } else {
+            if raw.count == 1 {
+                // 1桁 → 10倍
+                if let doubleValue = Double(raw) {
+                    return String(format: "%.1f", doubleValue * 10)
+                } else {
+                    return "0.0"
+                }
+            } else if raw.count == 2 {
+                // 2桁 → そのまま表示
+                return String(format: "%.1f", Double(raw)!)
+            } else {
+                // 3桁以上 → 小数点挿入
+                let trimmed = String(raw.prefix(5)) // 5桁制限（例: "55555" → "5555.5"）
+                let intPart = String(trimmed.dropLast())
+                let decimal = String(trimmed.suffix(1))
+                return "\(intPart).\(decimal)"
+            }
+        }
+    }
+
+    /// 保存用 Double に変換：555 → 55.5
+    private func parsedWeight(from raw: String) -> Double {
+        switch raw.count {
+        case 1:
+            return Double(raw)! * 10
+        case 2:
+            return Double(raw)!
+        default:
+            let intPart = String(raw.dropLast())
+            let decimal = String(raw.suffix(1))
+            return Double("\(intPart).\(decimal)") ?? 0.0
+        }
+    }
 }
+
 
 #Preview {
     InputView()
